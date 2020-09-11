@@ -1,0 +1,28 @@
+{
+    "name": "skrip42/advanced-repository",
+    "description": "Symfony relation find repository",
+    "keywords": [],
+    "homepage": "https://github.com/Skrip42/advancedRepository",
+    "version": "v1.0.0",
+    "license": "MIT",
+    "minimum-stability": "dev",
+    "authors": [
+        {
+            "name": "skrip",
+            "email": "skrip42@gmail.com"
+        }
+    ],
+    "require": {
+        "php": "^7.1.3",
+        "doctrine/orm": "^2.7",
+        "doctrine/doctrine-bundle": "^2.1",
+        "babdev/pagerfanta-bundle": "^2.5"
+    },
+    "require-dev": {
+    },
+    "autoload": {
+        "psr-4": {
+            "Skrip42\\AdvancedRepository\\":""
+        }
+    }
+}
