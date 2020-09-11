@@ -1,5 +1,4 @@
 <?php
-
 namespace Skrip42\AdvancedRepository;
 
 use Pagerfanta\Pagerfanta;
