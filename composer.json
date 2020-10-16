@@ -3,7 +3,7 @@
     "description": "Symfony relation find repository",
     "keywords": [],
     "homepage": "https://github.com/Skrip42/advancedRepository",
-    "version": "v1.0.0",
+    "version": "v2.0.0",
     "license": "MIT",
     "minimum-stability": "dev",
     "authors": [
