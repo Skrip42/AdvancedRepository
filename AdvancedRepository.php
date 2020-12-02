@@ -11,87 +11,131 @@ abstract class AdvancedRepository extends ServiceEntityRepository
 {
     private function getQueryByRelationParams(array $params)
     {
+        $joinList = [];
         $query = $this->createQueryBuilder('base');
         foreach ($params as $key => $value) {
             $valKey = $this->generateKey($key);
             $parts = $this->prepareParam($key, $valKey);
             $i = 0;
             for (; $i < count($parts) - 1; $i++) {
+                $joinKey = $parts[$i][0] . ' ' . $parts[$i][1];
                 if (count($parts[$i]) == 2) {
-                    $query->innerJoin($parts[$i][0], $parts[$i][1]);
+                    if (empty($joinList[$joinKey])) {
+                        $query->innerJoin($parts[$i][0], $parts[$i][1]);
+                    }
                 } elseif (count($parts[$i]) === 3) {
-                    $query->innerJoin(
-                        $parts[$i][0],
-                        $parts[$i][1],
-                        Expr\Join::WITH,
-                        $parts[$i][2]
-                    );
+                    if (empty($joinList[$joinKey])) {
+                        $query->innerJoin(
+                            $parts[$i][0],
+                            $parts[$i][1],
+                            Expr\Join::WITH,
+                            $parts[$i][2]
+                        );
+                    } else {
+                        $query->andWhere($parts[$i][2]);
+                    }
                 } else {
                     $cond = array_slice($parts[$i], 2);
                     $and = $query->expr()->andX(...$cond);
-                    $query->innerJoin(
-                        $parts[$i][0],
-                        $parts[$i][1],
-                        Expr\Join::WITH,
-                        $and
-                    );
+                    if (empty($joinList[$joinKey])) {
+                        $query->innerJoin(
+                            $parts[$i][0],
+                            $parts[$i][1],
+                            Expr\Join::WITH,
+                            $and
+                        );
+                    } else {
+                        $query->andWhere($and);
+                    }
                 }
+                $joinList[$joinKey] = true;
             }
-            $value = explode('::', $value, 2);
-            if (count($value) == 1) {
+            if (is_array($value)) {
+                $query->andWhere($parts[$i][0] . ' in (:' . $parts[$i][1] . ')');
+                $query->setParameter($valKey, $value);
+            } else if (is_object($value)) {
                 $query->andWhere($parts[$i][0] . ' = :' . $parts[$i][1]);
                 $query->setParameter($valKey, $value);
             } else {
-                switch ($value[0]) {
-                    case 'not':
-                        $query->andWhere($parts[$i][0] . ' != :' . $parts[$i][1]);
-                        $query->setParameter($valKey, '%' . $value[1] . '%');
-                        break;
-                    case 'like':
-                        $query->andWhere($parts[$i][0] . ' like :' . $parts[$i][1]);
-                        $query->setParameter($valKey, '%' . $value[1] . '%');
-                        break;
-                    case 'notLike':
-                        $query->andWhere($parts[$i][0] . ' like :' . $parts[$i][1]);
-                        $query->setParameter($valKey, $value[1]);
-                        break;
-                    case 'in':
-                        $query->andWhere($parts[$i][0] . ' in (:' . $parts[$i][1] . ')');
-                        $query->setParameter($valKey, explode(',', $value[1]));
-                        break;
-                    case 'notIn':
-                        $query->andWhere($parts[$i][0] . ' not in (:' . $parts[$i][1] . ')');
-                        $query->setParameter($valKey, explode(',', $value[1]));
-                        break;
-                    case 'less':
-                        $query->andWhere($parts[$i][0] . ' < :' . $parts[$i][1]);
-                        $query->setParameter($valKey, $value[1]);
-                        break;
-                    case 'lessOrEq':
-                        $query->andWhere($parts[$i][0] . ' <= :' . $parts[$i][1]);
-                        $query->setParameter($valKey, $value[1]);
-                        break;
-                    case 'more':
-                        $query->andWhere($parts[$i][0] . ' > :' . $parts[$i][1]);
-                        $query->setParameter($valKey, $value[1]);
-                        break;
-                    case 'moreOrEq':
-                        $query->andWhere($parts[$i][0] . ' >= :' . $parts[$i][1]);
-                        $query->setParameter($valKey, $value[1]);
-                        break;
-                    case 'empty':
-                        $query->andWhere($parts[$i][0] . ' is null');
-                        break;
-                    case 'notEmpty':
-                        $query->andWhere($parts[$i][0] . ' is not null');
-                        break;
+                $value = explode('::', $value, 2);
+                if (count($value) == 1) {
+                    $query->andWhere($parts[$i][0] . ' = :' . $parts[$i][1]);
+                    $query->setParameter($valKey, $value);
+                } else {
+                    $value[1] = preg_replace('~(?<!\\\\)\\\\(:)~', '\\1', $value[1]);
+                    //die();
+                    switch ($value[0]) {
+                        case 'not':
+                            $query->andWhere(
+                                $parts[$i][0] . ' != :' . $parts[$i][1]
+                            );
+                            $query->setParameter($valKey, $value[1]);
+                            break;
+                        case 'like':
+                            $query->andWhere(
+                                $parts[$i][0] . ' like :' . $parts[$i][1]
+                            );
+                            $query->setParameter($valKey, '%' . $value[1] . '%');
+                            break;
+                        case 'notLike':
+                            $query->andWhere(
+                                $parts[$i][0] . ' like :' . $parts[$i][1]
+                            );
+                            $query->setParameter($valKey, '%' . $value[1] . '%');
+                            break;
+                        case 'in':
+                            $query->andWhere(
+                                $parts[$i][0] . ' in (:' . $parts[$i][1] . ')'
+                            );
+                            $query->setParameter($valKey, explode(',', $value[1]));
+                            break;
+                        case 'notIn':
+                            $query->andWhere(
+                                $parts[$i][0] . ' not in (:' . $parts[$i][1] . ')'
+                            );
+                            $query->setParameter($valKey, explode(',', $value[1]));
+                            break;
+                        case 'less':
+                            $query->andWhere(
+                                $parts[$i][0] . ' < :' . $parts[$i][1]
+                            );
+                            $query->setParameter($valKey, $value[1]);
+                            break;
+                        case 'lessOrEq':
+                            $query->andWhere(
+                                $parts[$i][0] . ' <= :' . $parts[$i][1]
+                            );
+                            $query->setParameter($valKey, $value[1]);
+                            break;
+                        case 'more':
+                            $query->andWhere(
+                                $parts[$i][0] . ' > :' . $parts[$i][1]
+                            );
+                            $query->setParameter($valKey, $value[1]);
+                            break;
+                        case 'moreOrEq':
+                            $query->andWhere(
+                                $parts[$i][0] . ' >= :' . $parts[$i][1]
+                            );
+                            $query->setParameter($valKey, $value[1]);
+                            break;
+                            //TODO
+                        //case 'empty':
+                            //$query->andWhere($parts[$i][1] . ' = :');
+                            //$query->setParameter($valKey, serialize(null));
+                            //break;
+                        //case 'notEmpty':
+                            //$query->andWhere($parts[$i][1] . ' != :');
+                            //$query->setParameter($valKey, serialize(null));
+                            //die();
+                            ////$query->andWhere($parts[$i][1] . ' is not null');
+                            //break;
+                    }
                 }
             }
         }
         return $query;
     }
-
-
 
     private function generateKey($params)
     {
@@ -134,13 +178,13 @@ abstract class AdvancedRepository extends ServiceEntityRepository
         return $chain;
     }
 
-    public function findByRelation(array $params, int $page, int $perPage)
+    public function advancedFindBy(array $params)
     {
         $query = $this->getQueryByRelationParams($params);
         return $query->getQuery()->getResult();
     }
 
-    public function paginateByRelation(array $params, int $page, int $perPage) : Pagerfanta
+    public function advancedPaginateBy(array $params, int $page, int $perPage) : Pagerfanta
     {
         $query = $this->getQueryByRelationParams($params);
         return $this->createPaginator($query, $page, $perPage);
@@ -153,8 +197,6 @@ abstract class AdvancedRepository extends ServiceEntityRepository
         $paginator->setMaxPerPage($maxPerPage);
         $page = $page > $paginator->getNbPages() ? $paginator->getNbPages() : $page;
         $paginator->setCurrentPage($page);
-
         return $paginator;
     }
 }
-
