@@ -50,7 +50,9 @@ abstract class AdvancedRepository extends ServiceEntityRepository
                 }
                 $joinList[$joinKey] = true;
             }
-            if (is_array($value)) {
+            if (is_null($value)) {
+                $query->andWhere($parts[$i][0] . ' is NULL');
+            } else if (is_array($value)) {
                 $query->andWhere($parts[$i][0] . ' in (:' . $parts[$i][1] . ')');
                 $query->setParameter($valKey, $value);
             } else if (is_object($value)) {
@@ -119,17 +121,12 @@ abstract class AdvancedRepository extends ServiceEntityRepository
                             );
                             $query->setParameter($valKey, $value[1]);
                             break;
-                            //TODO
-                        //case 'empty':
-                            //$query->andWhere($parts[$i][1] . ' = :');
-                            //$query->setParameter($valKey, serialize(null));
-                            //break;
-                        //case 'notEmpty':
-                            //$query->andWhere($parts[$i][1] . ' != :');
-                            //$query->setParameter($valKey, serialize(null));
-                            //die();
-                            ////$query->andWhere($parts[$i][1] . ' is not null');
-                            //break;
+                        case 'empty':
+                            $query->andWhere($parts[$i][0] . ' IS NULL');
+                            break;
+                        case 'notEmpty':
+                            $query->andWhere($parts[$i][0] . ' IS NOT NULL');
+                            break;
                     }
                 }
             }
