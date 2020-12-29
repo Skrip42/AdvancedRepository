@@ -1,8 +1,6 @@
 <?php
 namespace Skrip42\AdvancedRepository;
 
-use Pagerfanta\Pagerfanta;
-use Pagerfanta\Doctrine\ORM\QueryAdapter;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\Query\Expr;
 use Doctrine\ORM\QueryBuilder;
@@ -179,21 +177,5 @@ abstract class AdvancedRepository extends ServiceEntityRepository
     {
         $query = $this->buildQuery($params);
         return $query->getQuery()->getResult();
-    }
-
-    public function advancedPaginateBy(array $params, int $page, int $perPage) : Pagerfanta
-    {
-        $query = $this->buildQuery($params);
-        return $this->createPaginator($query, $page, $perPage);
-    }
-
-    public function createPaginator(QueryBuilder $queryBuilder, int $page, int $maxPerPage)
-    {
-        $adapter = new QueryAdapter($queryBuilder);
-        $paginator = new Pagerfanta($adapter);
-        $paginator->setMaxPerPage($maxPerPage);
-        $page = $page > $paginator->getNbPages() ? $paginator->getNbPages() : $page;
-        $paginator->setCurrentPage($page);
-        return $paginator;
     }
 }
