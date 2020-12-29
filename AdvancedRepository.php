@@ -9,7 +9,7 @@ use Doctrine\ORM\QueryBuilder;
 
 abstract class AdvancedRepository extends ServiceEntityRepository
 {
-    private function getQueryByRelationParams(array $params)
+    protected function buildQuery(array $params)
     {
         $joinList = [];
         $query = $this->createQueryBuilder('base');
@@ -177,13 +177,13 @@ abstract class AdvancedRepository extends ServiceEntityRepository
 
     public function advancedFindBy(array $params)
     {
-        $query = $this->getQueryByRelationParams($params);
+        $query = $this->buildQuery($params);
         return $query->getQuery()->getResult();
     }
 
     public function advancedPaginateBy(array $params, int $page, int $perPage) : Pagerfanta
     {
-        $query = $this->getQueryByRelationParams($params);
+        $query = $this->buildQuery($params);
         return $this->createPaginator($query, $page, $perPage);
     }
 
